@@ -41,7 +41,6 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   private
 
   def get_session(env, sid)
-    debugger
     if sid
       doc = database.get(sid)
       session = self.class.unmarshal(doc["data"])
