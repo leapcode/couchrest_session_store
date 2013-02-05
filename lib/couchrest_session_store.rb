@@ -1,5 +1,6 @@
 require 'couchrest'
 require 'couchrest_model'
+require 'action_dispatch'
 
 # CouchDB session storage for Rails.
 #
@@ -52,6 +53,9 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
       database.save_doc(doc)
     end
     return [sid, session]
+  rescue RestClient::ResourceNotFound
+    # session does not exist anymore - create a new one
+    get_session(env, nil)
   end
 
   def set_session(env, sid, session, options)

@@ -18,4 +18,5 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency "couchrest"
   gem.add_dependency "couchrest_model"
+  gem.add_dependency "actionpack"
 end
