@@ -60,5 +60,14 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
     database.save_doc(doc)
     return sid
   end
+
+  def destroy_session(env, sid, options)
+    doc = database.get(sid)
+    database.delete_doc(doc)
+    return nil
+  end
+
+
+
 end
 
