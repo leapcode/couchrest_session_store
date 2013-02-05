@@ -28,4 +28,15 @@ class SessionStoreTest < MiniTest::Unit::TestCase
     assert_equal Hash.new, other_session
   end
 
+  def test_can_logout_twice
+    sid, session = @store.send :get_session, @env, nil
+    session[:key] = "stub"
+    @store.send :set_session, @env, sid, session, {}
+    @store.send :destroy_session, @env, sid, {}
+    @store.send :destroy_session, @env, sid, {}
+    other_sid, other_session = @store.send(:get_session, @env, sid)
+    assert other_sid != sid
+    assert_equal Hash.new, other_session
+  end
+
 end

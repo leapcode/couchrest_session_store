@@ -69,6 +69,8 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
     doc = database.get(sid)
     database.delete_doc(doc)
     return nil
+  rescue RestClient::ResourceNotFound
+    # already destroyed - we're done.
   end
 
 
