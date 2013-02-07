@@ -14,7 +14,7 @@ Gem::Specification.new do |gem|
   gem.files = %w(README.md Rakefile) + ['lib/couchrest_session_store.rb']
   gem.name = "couchrest_session_store"
   gem.require_paths = ["lib"]
-  gem.version = '0.0.4'
+  gem.version = '0.0.5'
 
   gem.add_dependency "couchrest"
   gem.add_dependency "couchrest_model"
