@@ -24,7 +24,6 @@ class SessionStoreTest < MiniTest::Unit::TestCase
     @store.send :set_session, @env, sid, session, {}
     @store.send :destroy_session, @env, sid, {}
     other_sid, other_session = @store.send(:get_session, @env, sid)
-    assert other_sid != sid
     assert_equal Hash.new, other_session
   end
 
@@ -35,7 +34,6 @@ class SessionStoreTest < MiniTest::Unit::TestCase
     @store.send :destroy_session, @env, sid, {}
     @store.send :destroy_session, @env, sid, {}
     other_sid, other_session = @store.send(:get_session, @env, sid)
-    assert other_sid != sid
     assert_equal Hash.new, other_session
   end
 

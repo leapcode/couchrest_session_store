@@ -45,22 +45,17 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
     if sid
       doc = database.get(sid)
       session = self.class.unmarshal(doc["data"])
+      [sid, session]
     else
-      sid = generate_sid
-      session = {}
-      doc = CouchRest::Document.new "_id" => sid,
-        "data" => self.class.marshal(session)
-      database.save_doc(doc)
+      [generate_sid, {}]
     end
-    return [sid, session]
   rescue RestClient::ResourceNotFound
-    # session does not exist anymore - create a new one
-    get_session(env, nil)
+    # session data does not exist anymore
+    return [sid, {}]
   end
 
   def set_session(env, sid, session, options)
-    doc = database.get(sid)
-    doc["data"] = self.class.marshal(session)
+    doc = build_or_update_doc(sid, self.class.marshal(session))
     database.save_doc(doc)
     return sid
   end
@@ -74,6 +69,13 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   end
 
 
+  def build_or_update_doc(sid, data)
+    doc = database.get(sid)
+    doc["data"] = data
+    return doc
+  rescue RestClient::ResourceNotFound
+    return CouchRest::Document.new "_id" => sid, "data" => data
+  end
 
 end
 
