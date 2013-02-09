@@ -27,12 +27,20 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
 
   def initialize(app, options = {})
     super
-    self.class.use_database options[:database] || "sessions"
+    self.class.set_options(options)
+  end
+
+  def self.set_options(options)
+    @options = options
   end
 
   # just fetch from the config
   def self.database
-    @database ||= prepare_database
+    @database ||= initialize_database
+  end
+
+  def self.initialize_database
+    use_database @options[:database] || "sessions"
   end
 
   def database
