@@ -51,7 +51,7 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
 
   def get_session(env, sid)
     if sid
-      doc = database.get(sid)
+      doc = secure_get(sid)
       session = self.class.unmarshal(doc["data"])
       [sid, session]
     else
@@ -69,21 +69,27 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   end
 
   def destroy_session(env, sid, options)
-    doc = database.get(sid)
+    doc = secure_get(sid)
     database.delete_doc(doc)
     options[:drop] ? nil : generate_sid
   rescue RestClient::ResourceNotFound
     # already destroyed - we're done.
   end
 
-
   def build_or_update_doc(sid, data)
-    doc = database.get(sid)
+    doc = secure_get(sid)
     doc["data"] = data
     return doc
   rescue RestClient::ResourceNotFound
     return CouchRest::Document.new "_id" => sid, "data" => data
   end
 
+  # prevent access to design docs
+  # this should be prevented on a couch permission level as well.
+  # but better be save than sorry.
+  def secure_get(sid)
+    raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
+    database.get(sid)
+  end
 end
 
