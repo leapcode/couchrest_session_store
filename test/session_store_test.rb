@@ -18,6 +18,25 @@ class SessionStoreTest < MiniTest::Unit::TestCase
     @store.send :destroy_session, @env, sid, {}
   end
 
+  def test_unmarshalled_session_flow
+    sid, session = @store.send :get_session, @env, nil
+    session[:key] = "stub"
+    @store.send :set_session, @env, sid, session, {:marshal_data => false}
+    new_sid, new_session = @store.send(:get_session, @env, sid)
+    assert_equal sid, new_sid
+    assert_equal session[:key], new_session["key"]
+    @store.send :destroy_session, @env, sid, {}
+  end
+
+  def test_unmarshalled_data
+    sid, session = @store.send :get_session, @env, nil
+    session[:key] = "stub"
+    @store.send :set_session, @env, sid, session, {:marshal_data => false}
+    database = CouchTester.new.database
+    data = database.get(sid)
+    assert_equal session[:key], data["key"]
+  end
+
   def test_logout_in_between
     sid, session = @store.send :get_session, @env, nil
     session[:key] = "stub"

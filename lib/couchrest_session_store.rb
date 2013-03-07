@@ -1,5 +1,7 @@
 require 'couchrest'
 require 'couchrest_model'
+# ensure compatibility with couchrest_model
+gem 'actionpack', '~> 3.0'
 require 'action_dispatch'
 
 # CouchDB session storage for Rails.
@@ -52,7 +54,12 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   def get_session(env, sid)
     if sid
       doc = secure_get(sid)
-      session = self.class.unmarshal(doc["data"])
+      if doc["not_marshalled"]
+        session = doc.to_hash
+        session.delete("not_marshalled")
+      else
+        session = self.class.unmarshal(doc["data"])
+      end
       [sid, session]
     else
       [generate_sid, {}]
@@ -63,7 +70,7 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   end
 
   def set_session(env, sid, session, options)
-    doc = build_or_update_doc(sid, self.class.marshal(session))
+    doc = build_or_update_doc(sid, session, options[:marshal_data])
     database.save_doc(doc)
     return sid
   end
@@ -76,12 +83,22 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
     # already destroyed - we're done.
   end
 
-  def build_or_update_doc(sid, data)
+  def build_or_update_doc(sid, session, marshal_data)
+    marshal_data = true if marshal_data.nil?
     doc = secure_get(sid)
-    doc["data"] = data
+    doc.clear.merge! data_for_doc(session, marshal_data)
     return doc
   rescue RestClient::ResourceNotFound
-    return CouchRest::Document.new "_id" => sid, "data" => data
+    data = data_for_doc(session, marshal_data).merge({"_id" => sid})
+    return CouchRest::Document.new(data)
+  end
+
+  def data_for_doc(session, marshal_data)
+    if marshal_data
+      { "data" => self.class.marshal(session) }
+    else
+      session.merge({"not_marshalled" => true})
+    end
   end
 
   # prevent access to design docs
