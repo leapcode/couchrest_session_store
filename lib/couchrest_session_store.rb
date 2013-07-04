@@ -78,9 +78,10 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   def destroy_session(env, sid, options)
     doc = secure_get(sid)
     database.delete_doc(doc)
-    options[:drop] ? nil : generate_sid
+    generate_sid unless options[:drop]
   rescue RestClient::ResourceNotFound
     # already destroyed - we're done.
+    generate_sid unless options[:drop]
   end
 
   def build_or_update_doc(sid, session, marshal_data)
