@@ -19,4 +19,7 @@ Gem::Specification.new do |gem|
   gem.add_dependency "couchrest"
   gem.add_dependency "couchrest_model"
   gem.add_dependency "actionpack"
+
+  gem.add_development_dependency "minitest"
+  gem.add_development_dependency "rake"
 end
