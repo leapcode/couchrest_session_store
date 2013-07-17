@@ -87,11 +87,19 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   def build_or_update_doc(sid, session, marshal_data)
     marshal_data = true if marshal_data.nil?
     doc = secure_get(sid)
-    doc.clear.merge! data_for_doc(session, marshal_data)
+    update_doc doc, data_for_doc(session, marshal_data)
     return doc
   rescue RestClient::ResourceNotFound
     data = data_for_doc(session, marshal_data).merge({"_id" => sid})
     return CouchRest::Document.new(data)
+  end
+
+  def update_doc(doc, data)
+    # clean up old data but leave id and revision intact
+    doc.reject! do |k,v|
+      k[0] != '_'
+    end
+    doc.merge! data
   end
 
   def data_for_doc(session, marshal_data)
