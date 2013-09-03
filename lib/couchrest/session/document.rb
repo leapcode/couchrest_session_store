@@ -1,7 +1,19 @@
 class CouchRest::Session::Document
 
-  def initialize(couch_doc)
-    @doc = couch_doc
+  def initialize(doc)
+    @doc = doc
+  end
+
+  def self.load(sid)
+    self.new(database.get(sid))
+  end
+
+  def self.build(data)
+    self.new(CouchRest::Document.new(data))
+  end
+
+  def self.database
+    CouchRest::Session::Store.database
   end
 
   def to_session
@@ -32,11 +44,11 @@ class CouchRest::Session::Document
 
   protected
 
-  def database
-    CouchRest::Session::Store.database
-  end
-
   def doc
     @doc
+  end
+
+  def database
+    CouchRest::Session::Store.database
   end
 end

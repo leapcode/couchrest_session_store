@@ -32,10 +32,6 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     use_database @options[:database] || "sessions"
   end
 
-  def database
-    self.class.database
-  end
-
   private
 
   def get_session(env, sid)
@@ -72,7 +68,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     return doc
   rescue RestClient::ResourceNotFound
     data = data_for_doc(session, marshal_data).merge({"_id" => sid})
-    return CouchRest::Session::Document.new(CouchRest::Document.new(data))
+    return CouchRest::Session::Document.build(data)
   end
 
   def data_for_doc(session, marshal_data)
@@ -88,7 +84,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   # but better be save than sorry.
   def secure_get(sid)
     raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
-    CouchRest::Session::Document.new(database.get(sid))
+    CouchRest::Session::Document.load(sid)
   end
 end
 
