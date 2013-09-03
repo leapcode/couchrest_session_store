@@ -4,6 +4,9 @@ require 'couchrest_model'
 gem 'actionpack', '~> 3.0'
 require 'action_dispatch'
 
+# require 'couchrest/session_store'
+require 'couchrest/session_document'
+
 # CouchDB session storage for Rails.
 #
 # It will automatically pick up the config/couch.yml file for CouchRest Model
@@ -11,7 +14,7 @@ require 'action_dispatch'
 # Options:
 # :database => database to use combined with config prefix and suffix
 #
-class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
+class CouchRest::SessionStore < ActionDispatch::Session::AbstractStore
 
   include CouchRest::Model::Configuration
   include CouchRest::Model::Connection
@@ -54,13 +57,7 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   def get_session(env, sid)
     if sid
       doc = secure_get(sid)
-      if doc["not_marshalled"]
-        session = doc.to_hash
-        session.delete("not_marshalled")
-      else
-        session = self.class.unmarshal(doc["data"])
-      end
-      [sid, session]
+      [sid, doc.to_session]
     else
       [generate_sid, {}]
     end
@@ -71,13 +68,13 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
 
   def set_session(env, sid, session, options)
     doc = build_or_update_doc(sid, session, options[:marshal_data])
-    database.save_doc(doc)
+    doc.save
     return sid
   end
 
   def destroy_session(env, sid, options)
     doc = secure_get(sid)
-    database.delete_doc(doc)
+    doc.delete
     generate_sid unless options[:drop]
   rescue RestClient::ResourceNotFound
     # already destroyed - we're done.
@@ -87,19 +84,11 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   def build_or_update_doc(sid, session, marshal_data)
     marshal_data = true if marshal_data.nil?
     doc = secure_get(sid)
-    update_doc doc, data_for_doc(session, marshal_data)
+    doc.update data_for_doc(session, marshal_data)
     return doc
   rescue RestClient::ResourceNotFound
     data = data_for_doc(session, marshal_data).merge({"_id" => sid})
-    return CouchRest::Document.new(data)
-  end
-
-  def update_doc(doc, data)
-    # clean up old data but leave id and revision intact
-    doc.reject! do |k,v|
-      k[0] != '_'
-    end
-    doc.merge! data
+    return CouchRest::SessionDocument.new(CouchRest::Document.new(data))
   end
 
   def data_for_doc(session, marshal_data)
@@ -115,7 +104,7 @@ class CouchRestSessionStore < ActionDispatch::Session::AbstractStore
   # but better be save than sorry.
   def secure_get(sid)
     raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
-    database.get(sid)
+    CouchRest::SessionDocument.new(database.get(sid))
   end
 end
 

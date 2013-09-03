@@ -90,7 +90,7 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def store(options = {})
-    @store ||= CouchRestSessionStore.new(app, options)
+    @store ||= CouchRest::SessionStore.new(app, options)
   end
 
   def env(settings = {})
