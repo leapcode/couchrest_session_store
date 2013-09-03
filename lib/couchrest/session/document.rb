@@ -13,9 +13,9 @@ class CouchRest::Session::Document
     end
   end
 
-  def self.build(sid, session, marshal_data)
+  def self.build(sid, session, options)
     self.new(CouchRest::Document.new({"_id" => sid})).tap do |session_doc|
-      session_doc.update session, marshal_data
+      session_doc.update session, options
     end
   end
 
@@ -37,12 +37,12 @@ class CouchRest::Session::Document
     database.delete_doc(doc)
   end
 
-  def update(session, marshal_data)
+  def update(session, options)
     # clean up old data but leave id and revision intact
     doc.reject! do |k,v|
       k[0] != '_'
     end
-    doc.merge! data_for_doc(session, marshal_data)
+    doc.merge! data_for_doc(session, options)
   end
 
   def save
@@ -51,8 +51,8 @@ class CouchRest::Session::Document
 
   protected
 
-  def data_for_doc(session, marshal_data)
-    if marshal_data
+  def data_for_doc(session, options)
+    if options[:marshal_data]
       { "data" => marshal(session) }
     else
       session.merge({"not_marshalled" => true})

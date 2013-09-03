@@ -36,7 +36,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def set_session(env, sid, session, options)
-    doc = build_or_update_doc(sid, session, options[:marshal_data])
+    doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
   end
@@ -50,13 +50,13 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     generate_sid unless options[:drop]
   end
 
-  def build_or_update_doc(sid, session, marshal_data)
-    marshal_data = true if marshal_data.nil?
+  def build_or_update_doc(sid, session, options)
+    options[:marshal_data] = true if options[:marshal_data].nil?
     doc = secure_get(sid)
-    doc.update(session, marshal_data)
+    doc.update(session, options)
     return doc
   rescue RestClient::ResourceNotFound
-    CouchRest::Session::Document.build(sid, session, marshal_data)
+    CouchRest::Session::Document.build(sid, session, options)
   end
 
   # prevent access to design docs
