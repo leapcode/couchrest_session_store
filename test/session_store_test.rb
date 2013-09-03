@@ -37,7 +37,7 @@ class SessionStoreTest < MiniTest::Test
     sid, session = init_session
     store.send :set_session, env, sid, session, {:marshal_data => false}
     database = CouchTester.new.database
-    data = database.get(sid)
+    data = database.get(sid)["data"]
     assert_equal session[:key], data["key"]
   end
 

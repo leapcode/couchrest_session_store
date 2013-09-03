@@ -24,11 +24,10 @@ class CouchRest::Session::Document
   end
 
   def to_session
-    if doc["not_marshalled"]
-      session = doc.to_hash
-      session.delete("not_marshalled")
-    else
+    if doc["marshalled"]
       session = unmarshal(doc["data"])
+    else
+      session = doc["data"]
     end
     return session
   end
@@ -52,11 +51,13 @@ class CouchRest::Session::Document
   protected
 
   def data_for_doc(session, options)
-    if options[:marshal_data]
-      { "data" => marshal(session) }
-    else
-      session.merge({"not_marshalled" => true})
-    end
+    { "data" => options[:marshal_data] ? marshal(session) : session,
+      "marshalled" => options[:marshal_data],
+      "expires" => expires(options) }
+  end
+
+  def expires(options)
+    nil
   end
 
   def doc
