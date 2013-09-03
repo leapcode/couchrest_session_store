@@ -1,19 +1,26 @@
-class CouchRest::Session::Document
+require 'couchrest/session/utility'
 
-  def initialize(doc)
+class CouchRest::Session::Document
+  include CouchRest::Session::Utility
+
+  def initialize(doc=nil)
     @doc = doc
   end
 
   def self.load(sid)
-    self.new(database.get(sid))
+    self.new.tap do |session_doc|
+      session_doc.load(sid)
+    end
   end
 
-  def self.build(data)
-    self.new(CouchRest::Document.new(data))
+  def self.build(sid, session, marshal_data)
+    self.new(CouchRest::Document.new({"_id" => sid})).tap do |session_doc|
+      session_doc.update session, marshal_data
+    end
   end
 
-  def self.database
-    CouchRest::Session::Store.database
+  def load(sid)
+    @doc = database.get(sid)
   end
 
   def to_session
@@ -21,7 +28,7 @@ class CouchRest::Session::Document
       session = doc.to_hash
       session.delete("not_marshalled")
     else
-      session = CouchRest::Session::Store.unmarshal(doc["data"])
+      session = unmarshal(doc["data"])
     end
     return session
   end
@@ -30,12 +37,12 @@ class CouchRest::Session::Document
     database.delete_doc(doc)
   end
 
-  def update(data)
+  def update(session, marshal_data)
     # clean up old data but leave id and revision intact
     doc.reject! do |k,v|
       k[0] != '_'
     end
-    doc.merge! data
+    doc.merge! data_for_doc(session, marshal_data)
   end
 
   def save
@@ -44,11 +51,16 @@ class CouchRest::Session::Document
 
   protected
 
+  def data_for_doc(session, marshal_data)
+    if marshal_data
+      { "data" => marshal(session) }
+    else
+      session.merge({"not_marshalled" => true})
+    end
+  end
+
   def doc
     @doc
   end
 
-  def database
-    CouchRest::Session::Store.database
-  end
 end

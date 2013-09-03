@@ -3,17 +3,6 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   include CouchRest::Model::Configuration
   include CouchRest::Model::Connection
 
-  class << self
-    def marshal(data)
-      ::Base64.encode64(Marshal.dump(data)) if data
-    end
-
-    def unmarshal(data)
-      Marshal.load(::Base64.decode64(data)) if data
-    end
-
-  end
-
   def initialize(app, options = {})
     super
     self.class.set_options(options)
@@ -64,19 +53,10 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   def build_or_update_doc(sid, session, marshal_data)
     marshal_data = true if marshal_data.nil?
     doc = secure_get(sid)
-    doc.update data_for_doc(session, marshal_data)
+    doc.update(session, marshal_data)
     return doc
   rescue RestClient::ResourceNotFound
-    data = data_for_doc(session, marshal_data).merge({"_id" => sid})
-    return CouchRest::Session::Document.build(data)
-  end
-
-  def data_for_doc(session, marshal_data)
-    if marshal_data
-      { "data" => self.class.marshal(session) }
-    else
-      session.merge({"not_marshalled" => true})
-    end
+    CouchRest::Session::Document.build(sid, session, marshal_data)
   end
 
   # prevent access to design docs
