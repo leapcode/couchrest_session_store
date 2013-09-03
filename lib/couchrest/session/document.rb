@@ -1,4 +1,4 @@
-class CouchRest::SessionDocument
+class CouchRest::Session::Document
 
   def initialize(couch_doc)
     @doc = couch_doc
@@ -9,7 +9,7 @@ class CouchRest::SessionDocument
       session = doc.to_hash
       session.delete("not_marshalled")
     else
-      session = CouchRest::SessionStore.unmarshal(doc["data"])
+      session = CouchRest::Session::Store.unmarshal(doc["data"])
     end
     return session
   end
@@ -33,7 +33,7 @@ class CouchRest::SessionDocument
   protected
 
   def database
-    CouchRest::SessionStore.database
+    CouchRest::Session::Store.database
   end
 
   def doc
