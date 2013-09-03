@@ -1,3 +1,8 @@
+#
+# Access the couch directly so we can test its state without relying
+# on the SessionStore
+#
+
 class CouchTester
   include CouchRest::Model::Configuration
   include CouchRest::Model::Connection
