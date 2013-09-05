@@ -3,12 +3,12 @@ require 'couchrest/session/utility'
 class CouchRest::Session::Document
   include CouchRest::Session::Utility
 
-  def initialize(doc=nil)
+  def initialize(doc)
     @doc = doc
   end
 
   def self.load(sid)
-    self.new.tap do |session_doc|
+    self.allocate.tap do |session_doc|
       session_doc.load(sid)
     end
   end
