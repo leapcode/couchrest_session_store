@@ -26,7 +26,7 @@ class SessionStoreTest < MiniTest::Test
 
   def test_unmarshalled_session_flow
     sid, session = init_session
-    store.send :set_session, env, sid, session, {:marshal_data => false}
+    store_session sid, session, :marshal_data => false
     new_sid, new_session = store.send(:get_session, env, sid)
     assert_equal sid, new_sid
     assert_equal session[:key], new_session["key"]
@@ -35,9 +35,9 @@ class SessionStoreTest < MiniTest::Test
 
   def test_unmarshalled_data
     sid, session = init_session
-    store.send :set_session, env, sid, session, {:marshal_data => false}
-    database = CouchTester.new.database
-    data = database.get(sid)["data"]
+    store_session sid, session, :marshal_data => false
+    couch = CouchTester.new
+    data = couch.get(sid)["data"]
     assert_equal session[:key], data["key"]
   end
 
@@ -59,29 +59,31 @@ class SessionStoreTest < MiniTest::Test
   end
 
   def test_stored_and_not_expired_yet
-    store(expire_after: 30)
     sid, session = init_session
-    store_session(sid, session)
+    store_session(sid, session, expire_after: 300)
+    doc = CouchRest::Session::Document.load(sid)
+    expires = doc.send :expires
+    assert expires
+    assert !doc.expired?
+    assert (expires - Time.now) > 0, "Exiry should be in the future"
+    assert (expires - Time.now) <= 300, "Should expire after 300 seconds - not more"
     assert_equal [sid, session], store.send(:get_session, env, sid)
   end
 
   def test_stored_but_expired
-    clock = TestClock.new
-    store(expire_after: 30, clock: clock)
     sid, session = init_session
-    store_session(sid, session)
-    clock.tick
+    store_session(sid, session, expire_after: 300)
+    CouchTester.new.update(sid, "expires" => Time.now - 2.minutes)
     other_sid, other_session = store.send(:get_session, env, sid)
     assert_equal Hash.new, other_session, "session should have expired"
     assert other_sid != sid
   end
 
   def test_store_without_expiry
-    clock = TestClock.new(100000)
-    store(clock: clock)
     sid, session = init_session
     store_session(sid, session)
-    clock.tick
+    couch = CouchTester.new
+    assert_nil couch.get(sid)["expires"]
     assert_equal [sid, session], store.send(:get_session, env, sid)
   end
 
@@ -103,7 +105,7 @@ class SessionStoreTest < MiniTest::Test
     return sid, session
   end
 
-  def store_session(sid, session)
-    store.send :set_session, env, sid, session, {}
+  def store_session(sid, session, options = {})
+    store.send :set_session, env, sid, session, options
   end
 end

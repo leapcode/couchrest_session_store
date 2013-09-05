@@ -24,9 +24,8 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   private
 
   def get_session(env, sid)
-    if sid
-      doc = secure_get(sid)
-      [sid, doc.to_session]
+    if session = fetch_session(sid)
+      [sid, session]
     else
       [generate_sid, {}]
     end
@@ -48,6 +47,12 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   rescue RestClient::ResourceNotFound
     # already destroyed - we're done.
     generate_sid unless options[:drop]
+  end
+
+  def fetch_session(sid)
+    return nil unless sid
+    doc = secure_get(sid)
+    doc.to_session unless doc.expired?
   end
 
   def build_or_update_doc(sid, session, options)

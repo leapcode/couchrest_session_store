@@ -48,16 +48,25 @@ class CouchRest::Session::Document
     database.save_doc(doc)
   end
 
+  def expired?
+    expires && expires < Time.now
+  end
+
   protected
 
   def data_for_doc(session, options)
     { "data" => options[:marshal_data] ? marshal(session) : session,
       "marshalled" => options[:marshal_data],
-      "expires" => expires(options) }
+      "expires" => expiry_from_options(options) }
   end
 
-  def expires(options)
-    nil
+  def expiry_from_options(options)
+    expire_after = options[:expire_after]
+    expire_after && (Time.now + expire_after)
+  end
+
+  def expires
+    doc["expires"] && Time.parse_iso8601(doc["expires"])
   end
 
   def doc
