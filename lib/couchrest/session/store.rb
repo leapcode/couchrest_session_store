@@ -35,6 +35,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def set_session(env, sid, session, options)
+    raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
     doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
@@ -56,12 +57,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def build_or_update_doc(sid, session, options)
-    options[:marshal_data] = true if options[:marshal_data].nil?
-    doc = secure_get(sid)
-    doc.update(session, options)
-    return doc
-  rescue RestClient::ResourceNotFound
-    CouchRest::Session::Document.build(sid, session, options)
+    CouchRest::Session::Document.build_or_update(sid, session, options)
   end
 
   # prevent access to design docs

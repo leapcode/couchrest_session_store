@@ -24,6 +24,14 @@ class SessionStoreTest < MiniTest::Test
     store.send :destroy_session, env, sid, {}
   end
 
+  def test_prevent_access_to_design_docs
+    sid = '_design/bla'
+    session = {views: 'my hacked view'}
+    assert_raises RestClient::ResourceNotFound do
+      store_session(sid, session)
+    end
+  end
+
   def test_unmarshalled_session_flow
     sid, session = init_session
     store_session sid, session, :marshal_data => false
