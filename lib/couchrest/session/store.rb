@@ -21,6 +21,37 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     use_database @options[:database] || "sessions"
   end
 
+  def cleanup_expired
+    expired.each do |row|
+      doc = CouchRest::Session::Document.load(row['id'])
+      doc.delete
+    end
+  end
+
+  def cleanup_never_expiring
+    never_expiring.each do |row|
+      doc = CouchRest::Session::Document.load(row['id'])
+      doc.delete
+    end
+  end
+
+  def expired
+    design = self.class.database.get '_design/Session'
+    response = design.view :by_expires,
+      reduce: false,
+      startkey: 1,
+      endkey: Time.now.utc.iso8601
+    response['rows']
+  end
+
+  def never_expiring
+    design = self.class.database.get '_design/Session'
+    response = design.view :by_expires,
+      reduce: false,
+      endkey: 1
+    response['rows']
+  end
+
   private
 
   def get_session(env, sid)
@@ -67,5 +98,5 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
     CouchRest::Session::Document.load(sid)
   end
-end
 
+end
