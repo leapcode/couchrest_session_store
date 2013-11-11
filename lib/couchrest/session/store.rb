@@ -21,34 +21,26 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     use_database @options[:database] || "sessions"
   end
 
-  def cleanup_expired
-    expired.each do |row|
-      doc = CouchRest::Session::Document.load(row['id'])
-      doc.delete
-    end
-  end
-
-  def cleanup_never_expiring
-    never_expiring.each do |row|
+  def cleanup(rows)
+    rows.each do |row|
       doc = CouchRest::Session::Document.load(row['id'])
       doc.delete
     end
   end
 
   def expired
-    design = self.class.database.get '_design/Session'
-    response = design.view :by_expires,
-      reduce: false,
-      startkey: 1,
+    find_by_expires startkey: 1,
       endkey: Time.now.utc.iso8601
-    response['rows']
   end
 
   def never_expiring
+    find_by_expires endkey: 1
+  end
+
+  def find_by_expires(options = {})
+    options[:reduce] ||= false
     design = self.class.database.get '_design/Session'
-    response = design.view :by_expires,
-      reduce: false,
-      endkey: 1
+    response = design.view :by_expires, options
     response['rows']
   end
 

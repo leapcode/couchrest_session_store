@@ -94,11 +94,17 @@ class SessionStoreTest < MiniTest::Test
     assert store.expired.find {|row| row["id"] == sid}
   end
 
+  def test_find_never_expiring
+    sid, session = init_session
+    store_session(sid, session)
+    assert store.never_expiring.find {|row| row["id"] == sid}
+  end
+
   def test_cleanup_expired_sessions
     sid, session = init_session
     store_session(sid, session, expire_after: 300)
     expire_session(sid)
-    store.cleanup_expired
+    store.cleanup(store.expired)
     assert_raises RestClient::ResourceNotFound do
       CouchTester.new.get(sid)
     end
@@ -107,7 +113,7 @@ class SessionStoreTest < MiniTest::Test
   def test_keep_fresh_during_cleanup
     sid, session = init_session
     store_session(sid, session, expire_after: 300)
-    store.cleanup_expired
+    store.cleanup(store.expired)
     assert_equal [sid, session], store.send(:get_session, env, sid)
   end
 
@@ -117,15 +123,6 @@ class SessionStoreTest < MiniTest::Test
     couch = CouchTester.new
     assert_nil couch.get(sid)["expires"]
     assert_equal [sid, session], store.send(:get_session, env, sid)
-  end
-
-  def test_cleanup_never_expiring
-    sid, session = init_session
-    store_session(sid, session)
-    store.cleanup_never_expiring
-    assert_raises RestClient::ResourceNotFound do
-      CouchTester.new.get(sid)
-    end
   end
 
   def app
