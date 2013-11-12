@@ -80,18 +80,20 @@ class SessionStoreTest < MiniTest::Test
     assert other_sid != sid
   end
 
-  def test_find_never_expired
+  def test_find_expired_sessions
     expired, expiring, never_expiring = seed_sessions
-    assert_includes_id store.expired, expired
-    assert_excludes_id store.expired, expiring
-    assert_excludes_id store.expired, never_expiring
+    expired_session_ids = store.expired.map {|row| row['id']}
+    assert expired_session_ids.include?(expired)
+    assert !expired_session_ids.include?(expiring)
+    assert !expired_session_ids.include?(never_expiring)
   end
 
-  def test_find_never_expiring
+  def test_find_never_expiring_sessions
     expired, expiring, never_expiring = seed_sessions
-    assert_includes_id store.never_expiring, never_expiring
-    assert_excludes_id store.never_expiring, expiring
-    assert_excludes_id store.never_expiring, expired
+    never_expiring_session_ids = store.never_expiring.map {|row| row['id']}
+    assert never_expiring_session_ids.include?(never_expiring)
+    assert !never_expiring_session_ids.include?(expiring)
+    assert !never_expiring_session_ids.include?(expired)
   end
 
   def test_cleanup_expired_sessions
@@ -161,14 +163,6 @@ class SessionStoreTest < MiniTest::Test
     CouchTester.new.update sid,
       "expires" => (Time.now - 10.minutes).utc.iso8601
     return sid, session
-  end
-
-  def assert_includes_id(rows, id)
-    assert rows.find {|row| row["id"] == id}
-  end
-
-  def assert_excludes_id(rows, id)
-    assert !rows.find {|row| row["id"] == id}
   end
 
 end
