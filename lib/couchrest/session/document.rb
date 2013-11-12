@@ -1,4 +1,5 @@
 require 'couchrest/session/utility'
+require 'time'
 
 class CouchRest::Session::Document
   include CouchRest::Session::Utility
@@ -13,10 +14,19 @@ class CouchRest::Session::Document
     end
   end
 
-  def self.build(sid, session, options)
+  def self.build(sid, session, options = {})
     self.new(CouchRest::Document.new({"_id" => sid})).tap do |session_doc|
       session_doc.update session, options
     end
+  end
+
+  def self.build_or_update(sid, session, options = {})
+    options[:marshal_data] = true if options[:marshal_data].nil?
+    doc = self.load(sid)
+    doc.update(session, options)
+    return doc
+  rescue RestClient::ResourceNotFound
+    self.build(sid, session, options)
   end
 
   def load(sid)
@@ -62,11 +72,11 @@ class CouchRest::Session::Document
 
   def expiry_from_options(options)
     expire_after = options[:expire_after]
-    expire_after && (Time.now + expire_after)
+    expire_after && (Time.now + expire_after).utc
   end
 
   def expires
-    doc["expires"] && Time.parse_iso8601(doc["expires"])
+    doc["expires"] && Time.iso8601(doc["expires"])
   end
 
   def doc

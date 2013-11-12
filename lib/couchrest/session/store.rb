@@ -21,6 +21,29 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     use_database @options[:database] || "sessions"
   end
 
+  def cleanup(rows)
+    rows.each do |row|
+      doc = CouchRest::Session::Document.load(row['id'])
+      doc.delete
+    end
+  end
+
+  def expired
+    find_by_expires startkey: 1,
+      endkey: Time.now.utc.iso8601
+  end
+
+  def never_expiring
+    find_by_expires endkey: 1
+  end
+
+  def find_by_expires(options = {})
+    options[:reduce] ||= false
+    design = self.class.database.get '_design/Session'
+    response = design.view :by_expires, options
+    response['rows']
+  end
+
   private
 
   def get_session(env, sid)
@@ -35,6 +58,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def set_session(env, sid, session, options)
+    raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
     doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
@@ -56,12 +80,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def build_or_update_doc(sid, session, options)
-    options[:marshal_data] = true if options[:marshal_data].nil?
-    doc = secure_get(sid)
-    doc.update(session, options)
-    return doc
-  rescue RestClient::ResourceNotFound
-    CouchRest::Session::Document.build(sid, session, options)
+    CouchRest::Session::Document.build_or_update(sid, session, options)
   end
 
   # prevent access to design docs
@@ -71,5 +90,5 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
     CouchRest::Session::Document.load(sid)
   end
-end
 
+end

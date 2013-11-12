@@ -2,7 +2,13 @@
 
 A simple session store based on CouchRest Model.
 
-It will automatically pick up the config/couch.yml file for CouchRest Model
+
+## Setup ##
+
+CouchRest::Session::Store will automatically pick up the config/couch.yml file for CouchRest Model.
+Cleaning up sessions requires a design document in the sessions database that enables querying by expiry. See the design directory for an example and test/setup_couch.sh for a script that puts the document on the couch for our tests.
+
+
 
 ## Options ##
 
