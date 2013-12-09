@@ -14,7 +14,7 @@ Gem::Specification.new do |gem|
   gem.files = `git ls-files`.split("\n")
   gem.name = "couchrest_session_store"
   gem.require_paths = ["lib"]
-  gem.version = '0.2.1'
+  gem.version = '0.2.2'
 
   gem.add_dependency "couchrest"
   gem.add_dependency "couchrest_model"
