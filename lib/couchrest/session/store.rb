@@ -62,6 +62,8 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
+  rescue CouchRest::Model::Errors::ConnectionFailed
+    return false
   end
 
   def destroy_session(env, sid, options)
