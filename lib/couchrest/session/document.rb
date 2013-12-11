@@ -8,9 +8,9 @@ class CouchRest::Session::Document < CouchRest::Document
 
   use_database "sessions"
 
-  def self.load(sid)
+  def self.fetch(sid)
     self.allocate.tap do |session_doc|
-      session_doc.load(sid)
+      session_doc.fetch(sid)
     end
   end
 
@@ -22,7 +22,7 @@ class CouchRest::Session::Document < CouchRest::Document
 
   def self.build_or_update(sid, session, options = {})
     options[:marshal_data] = true if options[:marshal_data].nil?
-    doc = self.load(sid)
+    doc = self.fetch(sid)
     doc.update(session, options)
     return doc
   rescue RestClient::ResourceNotFound
@@ -40,8 +40,8 @@ class CouchRest::Session::Document < CouchRest::Document
     @doc = doc
   end
 
-  def load(sid)
-    @doc = database.get(sid)
+  def fetch(sid = nil)
+    @doc = database.get(sid || doc['_id'])
   end
 
   def to_session
