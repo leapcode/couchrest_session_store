@@ -62,7 +62,10 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     doc = build_or_update_doc(sid, session, options)
     doc.save
     return sid
-  rescue CouchRest::Model::Errors::ConnectionFailed
+  # if we can't store the session we just return false.
+  rescue RestClient::Unauthorized,
+    Errno::EHOSTUNREACH,
+    Errno::ECONNREFUSED => e
     return false
   end
 
