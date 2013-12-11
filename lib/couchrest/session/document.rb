@@ -1,12 +1,12 @@
 require 'couchrest/session/utility'
 require 'time'
 
-class CouchRest::Session::Document
+class CouchRest::Session::Document < CouchRest::Document
+  include CouchRest::Model::Configuration
+  include CouchRest::Model::Connection
   include CouchRest::Session::Utility
 
-  def initialize(doc)
-    @doc = doc
-  end
+  use_database "sessions"
 
   def self.load(sid)
     self.allocate.tap do |session_doc|
@@ -27,6 +27,17 @@ class CouchRest::Session::Document
     return doc
   rescue RestClient::ResourceNotFound
     self.build(sid, session, options)
+  end
+
+  def self.find_by_expires(options = {})
+    options[:reduce] ||= false
+    design = database.get '_design/Session'
+    response = design.view :by_expires, options
+    response['rows']
+  end
+
+  def initialize(doc)
+    @doc = doc
   end
 
   def load(sid)

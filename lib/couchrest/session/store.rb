@@ -1,8 +1,5 @@
 class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
-  include CouchRest::Model::Configuration
-  include CouchRest::Model::Connection
-
   def initialize(app, options = {})
     super
     self.class.set_options(options)
@@ -10,15 +7,9 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
   def self.set_options(options)
     @options = options
-  end
-
-  # just fetch from the config
-  def self.database
-    @database ||= initialize_database
-  end
-
-  def self.initialize_database
-    use_database @options[:database] || "sessions"
+    if @options[:database]
+      CouchRest::Session::Document.use_database @options[:database]
+    end
   end
 
   def cleanup(rows)
@@ -29,19 +20,12 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   end
 
   def expired
-    find_by_expires startkey: 1,
+    CouchRest::Session::Document.find_by_expires startkey: 1,
       endkey: Time.now.utc.iso8601
   end
 
   def never_expiring
-    find_by_expires endkey: 1
-  end
-
-  def find_by_expires(options = {})
-    options[:reduce] ||= false
-    design = self.class.database.get '_design/Session'
-    response = design.view :by_expires, options
-    response['rows']
+    CouchRest::Session::Document.find_by_expires endkey: 1
   end
 
   private

@@ -9,8 +9,4 @@ module CouchRest::Session::Utility
     Marshal.load(::Base64.decode64(data)) if data
   end
 
-  def database
-    CouchRest::Session::Store.database
-  end
-
 end
