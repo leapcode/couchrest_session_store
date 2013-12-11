@@ -3,14 +3,16 @@
 # on the SessionStore
 #
 
-class CouchTester
+class CouchTester < CouchRest::Document
   include CouchRest::Model::Configuration
   include CouchRest::Model::Connection
 
-  attr_reader :database
+  use_database 'sessions'
 
   def initialize(options = {})
-    @database = self.class.use_database options[:database] || "sessions"
+    if options[:database]
+      self.class.use_database options[:database]
+    end
   end
 
   def get(sid)
