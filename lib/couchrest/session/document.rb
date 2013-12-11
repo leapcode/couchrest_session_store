@@ -67,6 +67,9 @@ class CouchRest::Session::Document < CouchRest::Document
 
   def save
     database.save_doc(doc)
+  rescue RestClient::Conflict
+    fetch
+    retry
   end
 
   def expired?
