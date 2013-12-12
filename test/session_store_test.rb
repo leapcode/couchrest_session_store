@@ -64,7 +64,7 @@ class SessionStoreTest < MiniTest::Test
 
   def test_stored_and_not_expired_yet
     sid, session = expiring_session
-    doc = CouchRest::Session::Document.load(sid)
+    doc = CouchRest::Session::Document.fetch(sid)
     expires = doc.send :expires
     assert expires
     assert !doc.expired?

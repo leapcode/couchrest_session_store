@@ -14,7 +14,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
   def cleanup(rows)
     rows.each do |row|
-      doc = CouchRest::Session::Document.load(row['id'])
+      doc = CouchRest::Session::Document.fetch(row['id'])
       doc.delete
     end
   end
@@ -77,7 +77,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   # but better be save than sorry.
   def secure_get(sid)
     raise RestClient::ResourceNotFound if /^_design\/(.*)/ =~ sid
-    CouchRest::Session::Document.load(sid)
+    CouchRest::Session::Document.fetch(sid)
   end
 
 end
