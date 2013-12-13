@@ -1,8 +1,8 @@
 class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
-  def initialize(app, options = {})
-    super
-    self.class.set_options(options)
+  # delegate configure to document
+  def self.configure(*args, &block)
+    CouchRest::Session::Document.configure *args, &block
   end
 
   def self.set_options(options)
@@ -10,6 +10,11 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     if @options[:database]
       CouchRest::Session::Document.use_database @options[:database]
     end
+  end
+
+  def initialize(app, options = {})
+    super
+    self.class.set_options(options)
   end
 
   def cleanup(rows)
