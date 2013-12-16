@@ -1,8 +1,8 @@
 class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
 
-  def initialize(app, options = {})
-    super
-    self.class.set_options(options)
+  # delegate configure to document
+  def self.configure(*args, &block)
+    CouchRest::Session::Document.configure *args, &block
   end
 
   def self.set_options(options)
@@ -10,6 +10,11 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     if @options[:database]
       CouchRest::Session::Document.use_database @options[:database]
     end
+  end
+
+  def initialize(app, options = {})
+    super
+    self.class.set_options(options)
   end
 
   def cleanup(rows)
@@ -39,6 +44,12 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
   rescue RestClient::ResourceNotFound
     # session data does not exist anymore
     return [sid, {}]
+  rescue RestClient::Unauthorized,
+    Errno::EHOSTUNREACH,
+    Errno::ECONNREFUSED => e
+    # can't connect to couch. We add some status to the session
+    # so the app can react. (Display error for example)
+    return [sid, {"_status" => {"couch" => "unreachable"}}]
   end
 
   def set_session(env, sid, session, options)
