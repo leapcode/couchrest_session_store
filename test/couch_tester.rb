@@ -6,13 +6,11 @@
 class CouchTester < CouchRest::Document
   include CouchRest::Model::Configuration
   include CouchRest::Model::Connection
+  include CouchRest::Model::Rotation
 
-  use_database 'sessions'
+  rotate_database 'sessions', :every => 1.month
 
   def initialize(options = {})
-    if options[:database]
-      self.class.use_database options[:database]
-    end
   end
 
   def get(sid)
