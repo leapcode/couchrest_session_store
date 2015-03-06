@@ -5,8 +5,9 @@ class CouchRest::Session::Document < CouchRest::Document
   include CouchRest::Model::Configuration
   include CouchRest::Model::Connection
   include CouchRest::Session::Utility
+  include CouchRest::Model::Rotation
 
-  use_database "sessions"
+  rotate_database 'sessions', :every => 1.month
 
   def self.fetch(sid)
     self.allocate.tap do |session_doc|

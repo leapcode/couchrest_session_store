@@ -4,7 +4,8 @@ require 'couchrest_model'
 gem 'actionpack', '~> 3.0'
 require 'action_dispatch'
 
+require 'couchrest/model/database_method'
+require 'couchrest/model/rotation'
 require 'couchrest/session'
 require 'couchrest/session/store'
 require 'couchrest/session/document'
-
