@@ -12,12 +12,16 @@ module CouchRest
         def rotate_database(base_name, options={})
           @rotation_base_name = base_name
           @rotation_every = (options[:every] || 30.days).to_i
+          @expiration_field = options[:expires] || :expires
         end
 
         #
         # Check to see if dbs should be rotated. The :window
         # argument specifies how far in advance we should
         # create the new database (default 1.day).
+        #
+        # This method relies on the assumption that it is called
+        # at least once within each @rotation_every period.
         #
         def rotate_database_now(options={})
           window = options[:window] || 1.day
@@ -30,13 +34,16 @@ module CouchRest
           next_name = rotated_database_name(next_time)
           next_count = current_count+1
 
-          prev_time = window.ago.utc
-          prev_name = rotated_database_name(prev_time)
+          prev_name = current_name.sub(/(\d+)$/) {|i| i.to_i-1}
+          replication_started = false
+          old_name = prev_name.sub(/(\d+)$/) {|i| i.to_i-1} # even older than prev_name
+          trailing_edge_time = window.ago.utc
 
           if !database_exists?(current_name)
             # we should have created the current db earlier, but if somehow
             # it is missing we must make sure it exists.
             create_new_rotated_database(:from => prev_name, :to => current_name)
+            replication_started = true
           end
 
           if next_time.to_i/@rotation_every >= next_count && !database_exists?(next_name)
@@ -44,11 +51,16 @@ module CouchRest
             create_new_rotated_database(:from => current_name, :to => next_name)
           end
 
-          if prev_name == current_name
-            # time to destroy the old db
-            old_db = current_name.sub(/(\d+)$/) {|i| i.to_i-1}
-            if database_exists?(old_db)
-              self.server.database(db_name_with_prefix(old_db)).delete!
+          if trailing_edge_time.to_i/@rotation_every == current_count
+            # delete old dbs, but only after window time has past since the last rotation
+            if !replication_started && database_exists?(prev_name)
+              # delete previous, but only if we didn't just start replicating from it
+              self.server.database(db_name_with_prefix(prev_name)).delete!
+            end
+            if database_exists?(old_name)
+              # there are some edge cases, when rotate_database_now is run
+              # infrequently, that an older db might be left around.
+              self.server.database(db_name_with_prefix(old_name)).delete!
             end
           end
         end
@@ -99,7 +111,7 @@ module CouchRest
           end
           if from && from != to && database_exists?(from)
             from_db = self.server.database(db_name_with_prefix(from))
-            from_db.replicate_to(to_db, true, false)
+            replicate_old_to_new(from_db, to_db)
           end
         end
 
@@ -116,6 +128,37 @@ module CouchRest
           end
         end
 
+        def create_filter(db, name, filters)
+          db.save_doc("_id" => "_design/#{name}", "filters" => filters)
+        end
+
+        #
+        # Replicates documents from_db to to_db, skipping documents that have
+        # expired or been deleted.
+        #
+        # NOTE: It would be better if we could do this:
+        #
+        #   from_db.replicate_to(to_db, true, false,
+        #     :filter => 'rotation_filter/not_expired')
+        #
+        # But replicate_to() does not support a filter argument, so we call
+        # the private method replication() directly.
+        #
+        def replicate_old_to_new(from_db, to_db)
+          create_filter(from_db, 'rotation_filter', {"not_expired" => NOT_EXPIRED_FILTER % {:expires => @expiration_field}})
+          from_db.send(:replicate, to_db, true, :source => from_db.name, :filter => 'rotation_filter/not_expired')
+        end
+
+        NOT_EXPIRED_FILTER = "" +
+%[function(doc, req) {
+  if (doc._deleted) {
+    return false;
+  } else if (typeof(doc.%{expires}) != "undefined") {
+    return Date.now() < (new Date(doc.%{expires})).getTime();
+  } else {
+    return true;
+  }
+}]
       end
     end
   end
