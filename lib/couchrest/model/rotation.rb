@@ -8,6 +8,39 @@ module CouchRest
         use_database_method :rotated_database_name
       end
 
+      def create(*args)
+        super(*args)
+      rescue RestClient::ResourceNotFound => exc
+        raise storage_missing(exc)
+      end
+
+      def update(*args)
+        super(*args)
+      rescue RestClient::ResourceNotFound => exc
+        raise storage_missing(exc)
+      end
+
+      def destroy(*args)
+        super(*args)
+      rescue RestClient::ResourceNotFound => exc
+        raise storage_missing(exc)
+      end
+
+      private
+
+      # returns a special 'storage missing' exception when the db has
+      # not been created. very useful, since this happens a lot and a
+      # generic 404 is not that helpful.
+      def storage_missing(exc)
+        if exc.http_body =~ /no_db_file/
+          CouchRest::StorageMissing.new(exc.response, database)
+        else
+          exc
+        end
+      end
+
+      public
+
       module ClassMethods
         def rotate_database(base_name, options={})
           @rotation_base_name = base_name

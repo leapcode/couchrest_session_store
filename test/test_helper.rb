@@ -5,9 +5,5 @@ require File.expand_path(File.dirname(__FILE__) + '/../lib/couchrest_session_sto
 require File.expand_path(File.dirname(__FILE__) + '/couch_tester.rb')
 require File.expand_path(File.dirname(__FILE__) + '/test_clock.rb')
 
-#require 'debugger'
-
-#
-# Seed the design document if they don't already exist.
-#
+# Create the session db if it does not already exist.
 CouchRest::Session::Document.create_database!

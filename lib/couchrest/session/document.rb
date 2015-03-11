@@ -82,6 +82,11 @@ class CouchRest::Session::Document < CouchRest::Document
   rescue RestClient::Conflict
     fetch
     retry
+  rescue RestClient::ResourceNotFound => exc
+    if exc.http_body =~ /no_db_file/
+      exc = CouchRest::StorageMissing.new(exc.response, database)
+    end
+    raise exc
   end
 
   def expired?
