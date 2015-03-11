@@ -33,6 +33,22 @@ module CouchRest
         self.class.database_exists?(db_name)
       end
 
+      #
+      # The normal CouchRest::Model::Base comparison checks if the model's
+      # database objects are the same. That is not good for use here, since
+      # the objects will always be different. Instead, we compare the string
+      # that each database evaluates to.
+      #
+      def ==(other)
+        return false unless other.is_a?(Base)
+        if id.nil? && other.id.nil?
+          to_hash == other.to_hash
+        else
+          id == other.id && database.to_s == other.database.to_s
+        end
+      end
+      alias :eql? :==
+
       protected
 
       def call_database_method
