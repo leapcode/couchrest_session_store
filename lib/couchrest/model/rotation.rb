@@ -81,7 +81,7 @@ module CouchRest
           db = if name
             self.server.database!(db_name_with_prefix(name))
           else
-            self.server.database!
+            self.database!
           end
           create_rotation_filter(db)
           if self.respond_to?(:design_doc)
@@ -137,6 +137,7 @@ module CouchRest
           name = 'rotation_filter'
           filters = {"not_expired" => NOT_EXPIRED_FILTER % {:expires => @expiration_field}}
           db.save_doc("_id" => "_design/#{name}", "filters" => filters)
+        rescue RestClient::Conflict
         end
 
         #

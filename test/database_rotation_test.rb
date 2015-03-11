@@ -17,7 +17,7 @@ class RotationTest < MiniTest::Test
     next_db_name = nil
 
     Time.stub :now, Time.gm(2015,3,7,0) do
-      Token.database!
+      Token.create_database!
       doc = Token.create!(:token => 'aaaa')
       original_name = Token.rotated_database_name
       assert database_exists?(original_name)
