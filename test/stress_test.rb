@@ -27,7 +27,7 @@ class StressTest < MiniTest::Test
     Time.stub :now, 1.day.from_now do
       Stress.rotate_database_now(:window => 1.hour)
       sleep 0.5
-      assert_equal COUNT / 100, Stress.database.info["doc_count"]
+      assert_equal (COUNT/100)+1, Stress.database.info["doc_count"]
     end
   end
 

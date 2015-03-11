@@ -77,10 +77,19 @@ module CouchRest
         #
         # create a new empty database.
         #
-        def create_database!
-          db = self.database!
+        def create_database!(name=nil)
+          db = if name
+            self.server.database!(db_name_with_prefix(name))
+          else
+            self.server.database!
+          end
+          create_rotation_filter(db)
           if self.respond_to?(:design_doc)
             design_doc.sync!(db)
+            # or maybe this?:
+            #self.design_docs.each do |design|
+            #  design.migrate(to_db)
+            #end
           end
           return db
         end
@@ -100,14 +109,10 @@ module CouchRest
         def create_new_rotated_database(options={})
           from = options[:from]
           to = options[:to]
-          to_db = self.server.database!(db_name_with_prefix(to))
+          to_db = self.create_database!(to)
           if database_exists?(@rotation_base_name)
             base_db = self.server.database(db_name_with_prefix(@rotation_base_name))
             copy_design_docs(base_db, to_db)
-          elsif self.respond_to?(:design_docs)
-            self.design_docs.each do |design|
-              design.migrate(to_db)
-            end
           end
           if from && from != to && database_exists?(from)
             from_db = self.server.database(db_name_with_prefix(from))
@@ -128,7 +133,9 @@ module CouchRest
           end
         end
 
-        def create_filter(db, name, filters)
+        def create_rotation_filter(db)
+          name = 'rotation_filter'
+          filters = {"not_expired" => NOT_EXPIRED_FILTER % {:expires => @expiration_field}}
           db.save_doc("_id" => "_design/#{name}", "filters" => filters)
         end
 
@@ -145,7 +152,7 @@ module CouchRest
         # the private method replication() directly.
         #
         def replicate_old_to_new(from_db, to_db)
-          create_filter(from_db, 'rotation_filter', {"not_expired" => NOT_EXPIRED_FILTER % {:expires => @expiration_field}})
+          create_rotation_filter(from_db)
           from_db.send(:replicate, to_db, true, :source => from_db.name, :filter => 'rotation_filter/not_expired')
         end
 
