@@ -37,6 +37,17 @@ class CouchRest::Session::Document < CouchRest::Document
     response['rows']
   end
 
+  def self.create_database!
+    db = self.database!
+    begin
+      db.get('_design/Session')
+    rescue RestClient::ResourceNotFound
+      design = File.read(File.expand_path('../../../../design/Session.json', __FILE__))
+      design = JSON.parse(design)
+      db.save_doc(design.merge({"_id" => "_design/Session"}))
+    end
+  end
+
   def initialize(doc)
     @doc = doc
   end

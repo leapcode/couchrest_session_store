@@ -10,11 +10,4 @@ require File.expand_path(File.dirname(__FILE__) + '/test_clock.rb')
 #
 # Seed the design document if they don't already exist.
 #
-db = CouchRest::Session::Document.database!
-begin
-  db.get('_design/Session')
-rescue RestClient::ResourceNotFound
-  design = File.read(File.expand_path('../../design/Session.json', __FILE__))
-  design = JSON.parse(design)
-  db.save_doc(design.merge({"_id" => "_design/Session"}))
-end
+CouchRest::Session::Document.create_database!

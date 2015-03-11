@@ -62,6 +62,17 @@ module CouchRest
           "#{@rotation_base_name}_#{units}"
         end
 
+        #
+        # create a new empty database.
+        #
+        def create_database!
+          db = self.database!
+          if self.respond_to?(:design_doc)
+            design_doc.sync!(db)
+          end
+          return db
+        end
+
         protected
 
         #
