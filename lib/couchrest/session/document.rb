@@ -47,6 +47,7 @@ class CouchRest::Session::Document < CouchRest::Document
       design = JSON.parse(design)
       db.save_doc(design.merge({"_id" => "_design/Session"}))
     end
+    db
   end
 
   def initialize(doc)
