@@ -13,7 +13,7 @@ class StressTest < MiniTest::Test
     include CouchRest::Model::Rotation
     property :token, String
     property :expires_at, Time
-    rotate_database 'stress_test', :every => 1.day, :expires => :expires_at
+    rotate_database 'stress_test', :every => 1.day, :expiration_field => :expires_at
   end
 
   def test_stress

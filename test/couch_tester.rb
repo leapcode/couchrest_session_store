@@ -8,7 +8,8 @@ class CouchTester < CouchRest::Document
   include CouchRest::Model::Connection
   include CouchRest::Model::Rotation
 
-  rotate_database 'sessions', :every => 1.month
+  rotate_database 'sessions',
+    :every => 1.month, :expiration_field => :expires
 
   def initialize(options = {})
   end

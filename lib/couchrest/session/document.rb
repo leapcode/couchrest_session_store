@@ -7,7 +7,8 @@ class CouchRest::Session::Document < CouchRest::Document
   include CouchRest::Session::Utility
   include CouchRest::Model::Rotation
 
-  rotate_database 'sessions', :every => 1.month
+  rotate_database 'sessions',
+    :every => 1.month, :expiration_field => :expires
 
   def self.fetch(sid)
     self.allocate.tap do |session_doc|
@@ -37,8 +38,8 @@ class CouchRest::Session::Document < CouchRest::Document
     response['rows']
   end
 
-  def self.create_database!
-    db = self.database!
+  def self.create_database!(name=nil)
+    db = super(name)
     begin
       db.get('_design/Session')
     rescue RestClient::ResourceNotFound

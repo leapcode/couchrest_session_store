@@ -42,10 +42,31 @@ module CouchRest
       public
 
       module ClassMethods
+        #
+        # Set up database rotation.
+        #
+        # base_name -- the name of the db before the rotation number is
+        # appended.
+        #
+        # options -- one of:
+        #
+        # * :every -- frequency of rotation
+        # * :expiration_field - what field to use to determine if a
+        #                       document is expired.
+        # * :timestamp_field - alternately, what field to use for the
+        #                      document timestamp.
+        # * :timeout -- used to expire documents with only a timestamp
+        #               field (in minutes)
+        #
         def rotate_database(base_name, options={})
           @rotation_base_name = base_name
-          @rotation_every = (options[:every] || 30.days).to_i
-          @expiration_field = options[:expires] || :expires
+          @rotation_every = (options.delete(:every) || 30.days).to_i
+          @expiration_field = options.delete(:expiration_field)
+          @timestamp_field = options.delete(:timestamp_field)
+          @timeout = options.delete(:timeout)
+          if options.any?
+            raise ArgumentError.new('Could not understand options %s' % options.keys)
+          end
         end
 
         #
@@ -168,7 +189,14 @@ module CouchRest
 
         def create_rotation_filter(db)
           name = 'rotation_filter'
-          filters = {"not_expired" => NOT_EXPIRED_FILTER % {:expires => @expiration_field}}
+          filter_string = if @expiration_field
+            NOT_EXPIRED_FILTER % {:expires => @expiration_field}
+          elsif @timestamp_field && @timeout
+            NOT_TIMED_OUT_FILTER % {:timestamp => @timestamp_field, :timeout => (60 * @timeout)}
+          else
+            NOT_DELETED_FILTER
+          end
+          filters = {"not_expired" => filter_string}
           db.save_doc("_id" => "_design/#{name}", "filters" => filters)
         rescue RestClient::Conflict
         end
@@ -190,6 +218,18 @@ module CouchRest
           from_db.send(:replicate, to_db, true, :source => from_db.name, :filter => 'rotation_filter/not_expired')
         end
 
+        #
+        # Three different filters, depending on how the model is set up.
+        #
+        # NOT_EXPIRED_FILTER is used when there is a single field that
+        # contains an absolute time for when the document has expired. The
+        #
+        # NOT_TIMED_OUT_FILTER is used when there is a field that records the
+        # timestamp of the last time the document was used. The expiration in
+        # this case is calculated from the timestamp plus @timeout.
+        #
+        # NOT_DELETED_FILTER is used when the other two cannot be.
+        #
         NOT_EXPIRED_FILTER = "" +
 %[function(doc, req) {
   if (doc._deleted) {
@@ -200,6 +240,23 @@ module CouchRest
     return true;
   }
 }]
+
+        NOT_TIMED_OUT_FILTER = "" +
+%[function(doc, req) {
+  if (doc._deleted) {
+    return false;
+  } else if (typeof(doc.%{timestamp}) != "undefined") {
+    return Date.now() < (new Date(doc.%{timestamp})).getTime() + %{timeout};
+  } else {
+    return true;
+  }
+}]
+
+        NOT_DELETED_FILTER = "" +
+%[function(doc, req) {
+  return !doc._deleted;
+}]
+
       end
     end
   end

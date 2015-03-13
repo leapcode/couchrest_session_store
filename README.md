@@ -81,6 +81,7 @@ An example of specifying database rotation:
 Then, in a task triggered by a cron job:
 
     CouchRest::Model::Base.configure do |conf|
+      conf.environment = Rails.env
       conf.connection_config_file = File.join(Rails.root, 'config', 'couchdb.admin.yml')
     end
     Token.rotate_database_now(:window => 1.day)
