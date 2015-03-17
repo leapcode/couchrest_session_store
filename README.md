@@ -117,3 +117,17 @@ Known issues:
 * Calling `Model.database.delete!` will not necessarily remove all the
   relevant databases because of the way prior and future databases are kept
   for the 'window' period.
+
+## Changes ##
+
+0.3.0
+
+* Added support for dynamic and rotating databases.
+
+0.2.4
+
+* Do not crash if can't connect to CouchDB
+
+0.2.3
+
+* Better retry and conflict catching.d
