@@ -59,6 +59,7 @@ class CouchRest::Session::Store < ActionDispatch::Session::AbstractStore
     return sid
   # if we can't store the session we just return false.
   rescue RestClient::Unauthorized,
+    RestClient::ServiceUnavailable,
     Errno::EHOSTUNREACH,
     Errno::ECONNREFUSED => e
     return false
